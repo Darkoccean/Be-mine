@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Josephine, will you be my Valentine?</title>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+<style>
+:root {
+  --bg1: #ffd6e7;
+  --bg2: #ffeef6;
+  --bg3: #ffccd9;
+  --bg4: #ffe0f0;
+  --card: #ffffffcc;
+  --yes: #ff3b7a;
+  --yesHover: #ff1f68;
+}
+
+/* General */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+  padding: 16px;
+  background: linear-gradient(270deg, var(--bg1), var(--bg2), var(--bg3), var(--bg4));
+  background-size: 1200% 1200%;
+  animation: gradientShift 15s ease infinite;
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  25% { background-position: 50% 50%; }
+  50% { background-position: 100% 50%; }
+  75% { background-position: 50% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+#confettiCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Card */
+.card {
+  width: min(720px, 92vw);
+  padding: 26px 22px;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  border-radius: 22px;
+  text-align: center;
+  box-shadow: 0 18px 60px rgba(0,0,0,.15);
+  position: relative;
+  animation: floatCard 6s ease-in-out infinite;
+  z-index: 2;
+}
+@keyframes floatCard {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 44px);
+  margin-bottom: 20px;
+}
+
+.button-zone {
+  position: relative;
+  width: min(520px, 92%);
+  height: 150px;
+  margin: 0 auto;
+  touch-action: none;
+}
+
+button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0,0,0,.14);
+  user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+#yesBtn {
+  left: 18%;
+  background: var(--yes);
+  color: #fff;
+  padding: 22px 34px;
+  font-size: 24px;
+}
+#yesBtn:hover {
+  background: var(--yesHover);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 0 25px rgba(255,59,122,0.8);
+}
+
+#noBtn {
+  left: 62%;
+  background: #e5e7eb;
+  color: #111827;
+  padding: 16px 24px;
+  font-size: 18px;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.result {
+  display: none;
+  margin-top: 18px;
+  text-align:center;
+}
+.result img {
+  width: min(500px,90vw);
+}
+
+.emoji {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.8;
+  font-size: 24px;
+  animation: floatUp linear infinite;
+}
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(1); opacity: 0.8; }
+  100% { transform: translateY(-120vh) scale(1.5); opacity: 0; }
+}
+
+/* PLAY BUTTON */
+#playMusicBtn{
+  position: static;
+  margin-top:12px;
+  padding:14px 22px;
+  font-size:16px;
+  border:none;
+  border-radius:14px;
+  background:#ff3b7a;
+  color:white;
+  cursor:pointer;
+  z-index:5;
+}
+
+#musicWrapper {
+  display:none;
+}
+</style>
+</head>
+
+<body>
+<canvas id="confettiCanvas"></canvas>
+
+<main class="card">
+  <h1> 🧸Emelie, will you be my Valentine?</h1>
+
+  <section class="button-zone" id="zone">
+    <button id="yesBtn">Yes 🥰🙈💕</button>
+    <button id="noBtn">Nooo 😟😩</button>
+  </section>
+
+  <div class="hint" id="hint">you can't say no 💌 </div>
+
+  <section class="result" id="result">
+    <h2>YAY! 🎉</h2>
+    <img class="fireworks" src="https://media.giphy.com/media/NLfQcKSJt5MUE/giphy.gif" alt="Fireworks" />
+  </section>
+</main>
+
+
+<!-- MOVED OUTSIDE CARD BELOW IT -->
+<button id="playMusicBtn">▶🙈 Play Music</button>
+
+<div id="musicWrapper">
+<iframe width="100%" height="300" allow="autoplay"
+src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A875184310&auto_play=false"></iframe>
+</div>
+
+<script>
+const zone = document.getElementById("zone");
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const result = document.getElementById("result");
+const hint = document.getElementById("hint");
+
+const confettiCanvas = document.getElementById("confettiCanvas");
+function resizeCanvas(){
+  const dpr=Math.max(1,window.devicePixelRatio||1);
+  confettiCanvas.width=Math.floor(window.innerWidth*dpr);
+  confettiCanvas.height=Math.floor(window.innerHeight*dpr);
+  confettiCanvas.style.width="100vw";
+  confettiCanvas.style.height="100vh";
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+const confettiInstance=confetti.create(confettiCanvas,{resize:false,useWorker:true});
+function fullConfetti(){
+  const end=Date.now()+2500;
+  (function frame(){
+    confettiInstance({
+      particleCount:12,
+      spread:90,
+      startVelocity:45,
+      ticks:180,
+      origin:{x:Math.random(),y:Math.random()*0.3}
+    });
+    if(Date.now()<end) requestAnimationFrame(frame);
+  })();
+  setTimeout(()=>{
+    confettiInstance({
+      particleCount:400,
+      spread:200,
+      startVelocity:80,
+      ticks:250,
+      origin:{x:0.5,y:0.55}
+    });
+  },300);
+}
+
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+function moveNoUltraFast(px, py){
+  const z = zone.getBoundingClientRect();
+  const b = noBtn.getBoundingClientRect();
+  let dx = (b.left + b.width/2) - px;
+  let dy = (b.top + b.height/2) - py;
+  let mag = Math.hypot(dx, dy) || 1;
+  dx /= mag; dy /= mag;
+  const distance = Math.min(800, Math.hypot(dx, dy));
+  const speed = 90 + (800 - distance) / 2;
+  let newLeft = (b.left - z.left) + dx * speed;
+  let newTop  = (b.top - z.top) + dy * speed;
+  newLeft = clamp(newLeft, 0, z.width - b.width);
+  newTop  = clamp(newTop, 0, z.height - b.height);
+  noBtn.style.left = newLeft + "px";
+  noBtn.style.top  = newTop + "px";
+}
+
+zone.addEventListener("pointermove", e => {
+  const b = noBtn.getBoundingClientRect();
+  const d = Math.hypot((b.left + b.width/2) - e.clientX, (b.top + b.height/2) - e.clientY);
+  if(d < 800) moveNoUltraFast(e.clientX, e.clientY);
+});
+
+noBtn.addEventListener("click", e => e.preventDefault());
+
+let floatingInterval = setInterval(()=>{
+  const emojis=["💕","❤️","😍","😘","🫶🏾"];
+  const el=document.createElement("div");
+  el.className="emoji";
+  el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+  el.style.left=Math.random()*window.innerWidth+"px";
+  el.style.top=Math.random()*window.innerHeight+"px";
+  el.style.fontSize=14+Math.random()*28+"px";
+  el.style.animationDuration=2+Math.random()*3+"s";
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),8000);
+},50);
+
+yesBtn.addEventListener("click",()=>{
+  clearInterval(floatingInterval);
+  document.querySelectorAll(".emoji").forEach(e=>e.remove());
+  zone.style.display="none";
+  hint.style.display="none";
+  document.querySelector(".card h1").style.display="none";
+  result.style.display="block";
+  resizeCanvas();
+  fullConfetti();
+});
+
+/* PLAY MUSIC BUTTON */
+const playBtn = document.getElementById("playMusicBtn");
+const iframe = document.querySelector('#musicWrapper iframe');
+let isPlaying = false;
+
+playBtn.addEventListener("click", () => {
+  if (!isPlaying) {
+    iframe.contentWindow.postMessage('{"method":"play"}', '*');
+    playBtn.textContent = "⏸ Pause Music";
+    isPlaying = true;
+  } else {
+    iframe.contentWindow.postMessage('{"method":"pause"}', '*');
+    playBtn.textContent = "▶ Play Music";
+    isPlaying = false;
+  }
+});
+</script>
+</body>
+</html>
